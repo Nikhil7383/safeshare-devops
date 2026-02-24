@@ -20,7 +20,6 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: safeshare-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: MySafeshare@123
