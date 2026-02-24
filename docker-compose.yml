@@ -22,7 +22,7 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: MySafeshare@123
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: safeshare
     volumes:
       - mysql-data:/var/lib/mysql
