@@ -18,9 +18,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push Image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: docker/php/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/safeshare:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/safeshare:latest
