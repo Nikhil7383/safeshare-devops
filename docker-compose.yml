@@ -4,6 +4,11 @@ services:
     restart: always
     depends_on:
       - mysql
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
     volumes:
       - ./safeshare:/var/www/html
     networks:

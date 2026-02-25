@@ -23,7 +23,3 @@ CREATE TABLE IF NOT EXISTS files (
     FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
-
-INSERT INTO users (name, email, password, role) VALUES
-('Admin User', 'admin@example.com', 'adminpass', 'admin'),
-('Test User', 'user@example.com', 'userpass', 'user');
