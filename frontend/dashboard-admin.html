@@ -1,57 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Dashboard</title>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - SafeShare</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h2>Admin Dashboard</h2>
+<p>Welcome, <span id="userName"></span></p>
 
 <a href="files.html">View All Files</a>
 <button onclick="logout()">🚪 Logout</button>
 
-<table border="1" id="filesTable"></table>
+<hr>
+<h3>All Uploaded Files</h3>
+<table border="1" id="filesTable">
+    <tr><th>ID</th><th>File</th><th>Uploader</th><th>Date</th><th>Action</th></tr>
+</table>
 
 <script>
-const API = "/api";
+// Fixed: getUser() was called but never defined
+function getUser() {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+}
 
 const user = getUser();
 
+// Redirect if not admin
+if (!user || user.role !== "admin") {
+    window.location = "index.html";
+}
+
+document.getElementById("userName").innerText = user.name || "Admin";
+
+const API = "/api";
+
 async function loadFiles() {
-    const res = await fetch(API + "/files/list.php", {
-        headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
+    try {
+        const res = await fetch(API + "/files/list.php", {
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+        });
+        const data = await res.json();
+
+        const table = document.getElementById("filesTable");
+        // Reset keeping header row
+        table.innerHTML = `<tr><th>ID</th><th>File</th><th>Uploader</th><th>Date</th><th>Action</th></tr>`;
+
+        if (data.status === "success") {
+            // Fixed: was data.forEach but API returns data.files
+            data.files.forEach(f => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${f.id}</td>
+                    <td><a href="/uploads/${encodeURIComponent(f.filename)}" target="_blank">${f.filename}</a></td>
+                    <td>${f.name}</td>
+                    <td>${f.uploaded_at || ""}</td>
+                    <td><button onclick="deleteFile(${f.id})">❌ Delete</button></td>
+                `;
+                table.appendChild(tr);
+            });
+        } else {
+            table.innerHTML += `<tr><td colspan="5">${data.error || "No files found"}</td></tr>`;
         }
-    });
-
-    const data = await res.json();
-
-    let html = `<tr><th>ID</th><th>File</th><th>Uploader</th><th>Action</th></tr>`;
-
-    data.forEach(f => {
-        html += `<tr>
-            <td>${f.id}</td>
-            <td>${f.filename}</td>
-            <td>${f.name}</td>
-            <td><button onclick="deleteFile(${f.id})">❌ Delete</button></td>
-        </tr>`;
-    });
-
-    document.getElementById("filesTable").innerHTML = html;
+    } catch (e) {
+        console.error("Load error:", e);
+    }
 }
 
 async function deleteFile(id) {
-    if (!confirm("Delete file?")) return;
+    if (!confirm("Delete this file?")) return;
 
-    await fetch(API + "/files/delete.php?id=" + id, {
-        method: "DELETE",
-        headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
+    try {
+        const res = await fetch(API + "/files/delete.php?id=" + id, {
+            method: "GET", // PHP reads $_GET['id'], GET is correct
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+            loadFiles();
+        } else {
+            alert("Error: " + data.error);
         }
-    });
-
-    loadFiles();
+    } catch (e) {
+        alert("Delete failed: " + e);
+    }
 }
 
 function logout() {

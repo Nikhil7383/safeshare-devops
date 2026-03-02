@@ -1,45 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Teacher Dashboard</title>
+    <meta charset="UTF-8">
+    <title>Teacher Dashboard - SafeShare</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h2>Teacher Dashboard</h2>
+<p>Welcome, <span id="userName"></span></p>
 
-<a href="upload.html">📤 Upload File</a>
-<br><br>
-<a href="files.html">View All Files</a>
 <button onclick="logout()">🚪 Logout</button>
 
-<table border="1" id="filesTable"></table>
+<hr>
+<h3>Upload a File</h3>
+<input type="file" id="file">
+<button onclick="upload()">📤 Upload</button>
+<p id="uploadMsg"></p>
+
+<hr>
+<h3>All Files</h3>
+<table border="1" id="filesTable">
+    <tr><th>File</th><th>Uploader</th><th>Date</th><th>Download</th></tr>
+</table>
 
 <script>
-const API = "/api";
+// Fixed: getUser() was called but never defined
+function getUser() {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+}
 
 const user = getUser();
 
-async function loadFiles() {
-    const res = await fetch(API + "/files/list.php", {
-        headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
+// Redirect if not teacher
+if (!user || user.role !== "teacher") {
+    window.location = "index.html";
+}
+
+document.getElementById("userName").innerText = user.name || "Teacher";
+
+const API = "/api";
+
+async function upload() {
+    const token = localStorage.getItem("token");
+    const fileInput = document.getElementById("file");
+    const msg = document.getElementById("uploadMsg");
+
+    if (!fileInput.files.length) {
+        msg.innerText = "Please select a file first.";
+        return;
+    }
+
+    const form = new FormData();
+    form.append("file", fileInput.files[0]);
+
+    try {
+        const res = await fetch("/api/upload/upload.php", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token },
+            body: form
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+            msg.innerText = "✅ Uploaded: " + data.file;
+            loadFiles();
+        } else {
+            msg.innerText = "❌ Error: " + data.error;
         }
-    });
+    } catch (e) {
+        msg.innerText = "Upload failed: " + e;
+    }
+}
 
-    const data = await res.json();
+async function loadFiles() {
+    try {
+        const res = await fetch(API + "/files/list.php", {
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+        });
+        const data = await res.json();
 
-    let html = `<tr><th>File</th><th>Uploader</th><th>Download</th></tr>`;
+        const table = document.getElementById("filesTable");
+        table.innerHTML = `<tr><th>File</th><th>Uploader</th><th>Date</th><th>Download</th></tr>`;
 
-    data.forEach(f => {
-        html += `<tr>
-            <td>${f.filename}</td>
-            <td>${f.name}</td>
-            <td><a href="/uploads/${f.filename}" download>⬇ Download</a></td>
-        </tr>`;
-    });
-
-    document.getElementById("filesTable").innerHTML = html;
+        if (data.status === "success") {
+            // Fixed: was data.forEach but API returns data.files
+            data.files.forEach(f => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${f.filename}</td>
+                    <td>${f.name}</td>
+                    <td>${f.uploaded_at || ""}</td>
+                    <td><a href="/uploads/${encodeURIComponent(f.filename)}" download>⬇ Download</a></td>
+                `;
+                table.appendChild(tr);
+            });
+        } else {
+            table.innerHTML += `<tr><td colspan="4">${data.error || "No files"}</td></tr>`;
+        }
+    } catch (e) {
+        console.error("Load error:", e);
+    }
 }
 
 function logout() {

@@ -1,8 +1,9 @@
 <?php
-require_once '../../config/db.php';
-require_once '../../middleware/auth.php';
+header("Content-Type: application/json");
+require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../../middleware/auth.php';
 
-$user = authenticate(); // validates JWT
+$user = authenticate();
 
 if ($user['role'] !== 'admin') {
     http_response_code(403);
@@ -18,7 +19,7 @@ if (!isset($_GET['id'])) {
 
 $fileId = intval($_GET['id']);
 
-/* Get filename */
+// Get filename
 $stmt = $conn->prepare("SELECT filename FROM files WHERE id = ?");
 $stmt->bind_param("i", $fileId);
 $stmt->execute();
@@ -31,17 +32,15 @@ if (!$stmt->fetch()) {
 }
 $stmt->close();
 
-$filePath = "../../uploads/" . $filename;
+// Delete physical file
+$filePath = "/var/www/uploads/" . $filename;
 if (file_exists($filePath)) {
     unlink($filePath);
 }
 
-/* Delete DB record */
+// Delete DB record
 $delete = $conn->prepare("DELETE FROM files WHERE id = ?");
 $delete->bind_param("i", $fileId);
 $delete->execute();
 
-echo json_encode([
-    "status" => "success",
-    "deleted_file" => $filename
-]);
+echo json_encode(["status" => "success", "deleted_file" => $filename]);

@@ -1,40 +1,58 @@
 <?php
 header("Content-Type: application/json");
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting(0);
+ini_set('display_errors', 0);
 
 include(__DIR__ . '/../../config/db.php');
 require __DIR__ . '/../../config/jwt.php';
 
-$headers = apache_request_headers();
-if (!isset($headers['Authorization'])) {
-    echo json_encode(["status"=>"error","error"=>"Missing token"]); exit;
+$headers = getallheaders();
+$authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+if (!$authHeader) {
+    echo json_encode(["status" => "error", "error" => "Missing token"]);
+    exit;
 }
 
-$token = str_replace("Bearer ","",$headers['Authorization']);
+$token = str_replace("Bearer ", "", $authHeader);
 $payload = verify_jwt($token);
-if(!$payload) { echo json_encode(["status"=>"error","error"=>"Invalid token"]); exit; }
+if (!$payload) {
+    echo json_encode(["status" => "error", "error" => "Invalid token"]);
+    exit;
+}
 
 $userId = $payload['id'] ?? null;
-if(!$userId) { echo json_encode(["status"=>"error","error"=>"Invalid user"]); exit; }
+if (!$userId) {
+    echo json_encode(["status" => "error", "error" => "Invalid user"]);
+    exit;
+}
 
-if(!isset($_FILES['file'])) { echo json_encode(["status"=>"error","error"=>"No file uploaded"]); exit; }
+if (!isset($_FILES['file'])) {
+    echo json_encode(["status" => "error", "error" => "No file uploaded"]);
+    exit;
+}
 
-$uploadDir = __DIR__ . '/../../uploads/';
-if(!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+// Use absolute path mapped in docker-compose
+$uploadDir = '/var/www/uploads/';
+if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
-$filename = basename($_FILES['file']['name']);
+$originalName = basename($_FILES['file']['name']);
+$ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+$allowedTypes = ['pdf', 'docx', 'pptx', 'txt', 'jpg', 'jpeg', 'png'];
+if (!in_array($ext, $allowedTypes)) {
+    echo json_encode(["status" => "error", "error" => "Invalid file type"]);
+    exit;
+}
+
+// Unique filename to avoid collisions
+$filename = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
 $targetFile = $uploadDir . $filename;
 
-$allowedTypes = ['pdf','docx','pptx','txt','jpg','png'];
-$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-if(!in_array($ext,$allowedTypes)) { echo json_encode(["status"=>"error","error"=>"Invalid file type"]); exit; }
-
-if(move_uploaded_file($_FILES['file']['tmp_name'],$targetFile)){
+if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
     $stmt = $conn->prepare("INSERT INTO files (filename, uploaded_by) VALUES (?, ?)");
-    $stmt->bind_param("si",$filename,$userId);
+    $stmt->bind_param("si", $filename, $userId);
     $stmt->execute();
-    echo json_encode(["status"=>"success","file"=>$filename,"url"=>"/uploads/".$filename]);
-}else{
-    echo json_encode(["status"=>"error","error"=>"Upload failed"]);
+    echo json_encode(["status" => "success", "file" => $filename, "url" => "/uploads/" . $filename]);
+} else {
+    echo json_encode(["status" => "error", "error" => "Upload failed. Check directory permissions."]);
 }

@@ -3,21 +3,34 @@ header("Content-Type: application/json");
 include(__DIR__ . '/../../config/db.php');
 require __DIR__ . '/../../config/jwt.php';
 
-// Optional token validation
-$headers = apache_request_headers();
-$token = $headers['Authorization'] ?? null;
-$userId = null;
-if ($token) {
-    $token = str_replace("Bearer ", "", $token);
-    $payload = verify_jwt($token);
-    if ($payload) $userId = $payload['id'];
+// Validate token
+$headers = getallheaders();
+$authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+if (!$authHeader) {
+    http_response_code(401);
+    echo json_encode(["status" => "error", "error" => "Missing token"]);
+    exit;
+}
+$token = str_replace("Bearer ", "", $authHeader);
+$payload = verify_jwt($token);
+if (!$payload) {
+    http_response_code(401);
+    echo json_encode(["status" => "error", "error" => "Invalid token"]);
+    exit;
 }
 
-// Fetch all files
-$result = $conn->query("SELECT id, filename FROM files ORDER BY id DESC");
+// JOIN with users so dashboards get uploader name
+$result = $conn->query("
+    SELECT f.id, f.filename, f.uploaded_at, u.name, u.id AS user_id
+    FROM files f
+    JOIN users u ON f.uploaded_by = u.id
+    ORDER BY f.id DESC
+");
+
 $files = [];
 while ($row = $result->fetch_assoc()) {
     $row['url'] = "/uploads/" . $row['filename'];
     $files[] = $row;
 }
-echo json_encode(["status"=>"success","files"=>$files]);
+
+echo json_encode(["status" => "success", "files" => $files]);
