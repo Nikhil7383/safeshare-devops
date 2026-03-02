@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Dashboard</title>
+</head>
+<body>
+<h2>Welcome, <span id="userName"></span></h2>
+<button onclick="logout()">Logout</button>
+
+<hr>
+<h2>Upload File</h2>
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
+
+<hr>
+<h2>All Files</h2>
+<ul id="fileList"></ul>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+document.getElementById("userName").innerText = user.name || "Student";
+
+function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "index.html";
+}
+
+async function upload() {
+    const token = localStorage.getItem("token");
+    const fileInput = document.getElementById("file");
+    if (!fileInput.files.length) return alert("Select a file first");
+
+    const form = new FormData();
+    form.append("file", fileInput.files[0]);
+
+    try {
+        const res = await fetch("/api/upload/upload.php", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token },
+            body: form
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+            alert("File uploaded: " + data.file);
+            loadFiles();
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (e) {
+        alert("Upload failed: " + e);
+    }
+}
+
+async function loadFiles() {
+    const token = localStorage.getItem("token");
+    try {
+        const res = await fetch("/api/files/list.php", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+
+        const ul = document.getElementById("fileList");
+        ul.innerHTML = "";
+
+        if (data.status === "success") {
+            data.files.forEach(f => {
+                const li = document.createElement("li");
+                const a = document.createElement("a");
+                a.href = "/uploads/" + encodeURIComponent(f.filename);
+                a.download = f.filename;
+                a.innerText = f.filename;
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+        } else {
+            ul.innerHTML = "<li>" + (data.error || "No files") + "</li>";
+        }
+    } catch (e) {
+        console.error("Load files error:", e);
+    }
+}
+
+loadFiles();
+</script>
+</body>
+</html>

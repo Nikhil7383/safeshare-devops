@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SafeShare - Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>Register</h2>
+
+<form id="registerForm">
+    <input type="text" id="name" placeholder="Full Name" required><br>
+    <input type="email" id="email" placeholder="Email" required><br>
+    <input type="password" id="password" placeholder="Password" required><br>
+
+    <select id="role" required>
+        <option value="">Select Role</option>
+        <option value="student">Student</option>
+        <option value="teacher">Teacher</option>
+    </select><br>
+
+    <button type="submit">Register</button>
+</form>
+
+<p id="msg"></p>
+<a href="index.html">⬅ Back to Login</a>
+
+<script>
+const API_BASE = "/api/auth";
+
+document.getElementById("registerForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const payload = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+        role: document.getElementById("role").value
+    };
+
+    const res = await fetch(API_BASE + "/register.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.status === "success") {
+        alert("Registration successful!");
+        window.location = "index.html";
+    } else {
+        document.getElementById("msg").innerText = data.error || "Registration failed";
+    }
+});
+</script>
+
+</body>
+</html>

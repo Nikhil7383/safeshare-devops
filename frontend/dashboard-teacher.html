@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>Teacher Dashboard</h2>
+
+<a href="upload.html">📤 Upload File</a>
+<br><br>
+<a href="files.html">View All Files</a>
+<button onclick="logout()">🚪 Logout</button>
+
+<table border="1" id="filesTable"></table>
+
+<script>
+const API = "/api";
+
+const user = getUser();
+
+async function loadFiles() {
+    const res = await fetch(API + "/files/list.php", {
+        headers: {
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        }
+    });
+
+    const data = await res.json();
+
+    let html = `<tr><th>File</th><th>Uploader</th><th>Download</th></tr>`;
+
+    data.forEach(f => {
+        html += `<tr>
+            <td>${f.filename}</td>
+            <td>${f.name}</td>
+            <td><a href="/uploads/${f.filename}" download>⬇ Download</a></td>
+        </tr>`;
+    });
+
+    document.getElementById("filesTable").innerHTML = html;
+}
+
+function logout() {
+    localStorage.clear();
+    window.location = "index.html";
+}
+
+loadFiles();
+</script>
+
+</body>
+</html>

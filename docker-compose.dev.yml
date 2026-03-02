@@ -1,0 +1,40 @@
+services:
+  backend:
+    image: php:8.2-fpm
+    volumes:
+      - ./backend:/var/www/html
+      - ./uploads:/var/www/html/uploads
+    networks:
+      - safeshare-net
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./frontend:/var/www/html      # frontend static files
+      - ./backend:/var/www/html       # backend PHP
+      - ./uploads:/var/www/html/uploads
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - safeshare-net
+
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: safeshare
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - safeshare-net
+
+volumes:
+  db_data:
+
+networks:
+  safeshare-net:
