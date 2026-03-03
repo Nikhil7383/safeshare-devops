@@ -4,13 +4,31 @@
     <meta charset="UTF-8">
     <title>Teacher Dashboard - SafeShare</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            padding: 8px 12px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
 <h2>Teacher Dashboard</h2>
 <p>Welcome, <span id="userName"></span></p>
-
-<button onclick="logout()">🚪 Logout</button>
 
 <hr>
 <h3>Upload a File</h3>
@@ -20,22 +38,21 @@
 
 <hr>
 <h3>All Files</h3>
-<table border="1" id="filesTable">
+<table id="filesTable">
     <tr><th>File</th><th>Uploader</th><th>Date</th><th>Download</th></tr>
 </table>
 
+<!-- Logout button moved to bottom -->
+<hr>
+<button onclick="logout()">🚪 Logout</button>
+
 <script>
-// Fixed: getUser() was called but never defined
 function getUser() {
     return JSON.parse(localStorage.getItem("user") || "{}");
 }
 
 const user = getUser();
-
-// Redirect if not teacher
-if (!user || user.role !== "teacher") {
-    window.location = "index.html";
-}
+if (!user || user.role !== "teacher") window.location = "index.html";
 
 document.getElementById("userName").innerText = user.name || "Teacher";
 
@@ -78,12 +95,9 @@ async function loadFiles() {
             headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
         });
         const data = await res.json();
-
         const table = document.getElementById("filesTable");
         table.innerHTML = `<tr><th>File</th><th>Uploader</th><th>Date</th><th>Download</th></tr>`;
-
         if (data.status === "success") {
-            // Fixed: was data.forEach but API returns data.files
             data.files.forEach(f => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
@@ -109,6 +123,5 @@ function logout() {
 
 loadFiles();
 </script>
-
 </body>
 </html>
