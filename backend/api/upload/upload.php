@@ -1,10 +1,26 @@
 <?php
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 error_reporting(0);
 ini_set('display_errors', 0);
 
 include(__DIR__ . '/../../config/db.php');
 require __DIR__ . '/../../config/jwt.php';
+
+// AWS SDK
+require __DIR__ . '/../../vendor/autoload.php'; // composer autoload
+use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
+
+// Configure AWS S3
+$s3 = new S3Client([
+    'version' => 'latest',
+    'region'  => 'us-east-1', // replace with your bucket region
+]);
+
+$bucket = 'safeshare-uploads123'; // replace with your S3 bucket name
 
 $headers = getallheaders();
 $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
@@ -31,10 +47,6 @@ if (!isset($_FILES['file'])) {
     exit;
 }
 
-// Use absolute path mapped in docker-compose
-$uploadDir = '/var/www/uploads/';
-if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
 $originalName = basename($_FILES['file']['name']);
 $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
@@ -46,13 +58,26 @@ if (!in_array($ext, $allowedTypes)) {
 
 // Unique filename to avoid collisions
 $filename = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
-$targetFile = $uploadDir . $filename;
 
-if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+try {
+    // Upload to S3
+    $result = $s3->putObject([
+        'Bucket' => $bucket,
+        'Key'    => $filename,
+        'SourceFile' => $_FILES['file']['tmp_name'],
+        'ACL'    => 'private' // or 'public-read' if you want direct access
+    ]);
+
+    // Save file record in RDS
     $stmt = $conn->prepare("INSERT INTO files (filename, uploaded_by) VALUES (?, ?)");
     $stmt->bind_param("si", $filename, $userId);
     $stmt->execute();
-    echo json_encode(["status" => "success", "file" => $filename, "url" => "/uploads/" . $filename]);
-} else {
-    echo json_encode(["status" => "error", "error" => "Upload failed. Check directory permissions."]);
+
+    // S3 URL (optional — for frontend use)
+    $fileUrl = $result['ObjectURL'];
+
+    echo json_encode(["status" => "success", "file" => $filename, "url" => $fileUrl]);
+
+} catch (AwsException $e) {
+    echo json_encode(["status" => "error", "error" => $e->getMessage()]);
 }

@@ -1,3 +1,4 @@
+<script src="config.js"></script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,7 +37,8 @@ async function upload() {
     form.append("file", fileInput.files[0]);
 
     try {
-        const res = await fetch("/api/upload/upload.php", {
+        // Use API_BASE from config.js
+        const res = await fetch(`${API_BASE}/api/upload/upload.php`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token },
             body: form
@@ -45,9 +47,9 @@ async function upload() {
         const data = await res.json();
 
         if (data.status === "success") {
-            msg.innerText = "✅ Uploaded: " + data.file;
+            msg.innerText = "Uploaded: " + data.file;
         } else {
-            msg.innerText = "❌ Error: " + (data.error || "Upload failed");
+            msg.innerText = "Error: " + (data.error || "Upload failed");
         }
     } catch (e) {
         msg.innerText = "Upload failed: " + e;

@@ -1,3 +1,4 @@
+<script src="config.js"></script>
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,23 +12,25 @@
 
 <script>
 async function loadFiles() {
-    const token = localStorage.getItem("token"); // optional
-    const res = await fetch("/api/files/list.php", {
-        headers: { "Authorization": "Bearer " + token }
-    });
-
-    const data = await res.json();
-
-    if (data.status === "success") {
+    const token = localStorage.getItem("token");
+    try {
+        const res = await fetch(`${API_BASE}/api/files/list.php`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
         const ul = document.getElementById("fileList");
         ul.innerHTML = "";
-        data.files.forEach(f => {
-            const li = document.createElement("li");
-            li.innerHTML = `<a href="${f.url}" target="_blank">${f.filename}</a>`;
-            ul.appendChild(li);
-        });
-    } else {
-        alert(data.error);
+        if (data.status === "success") {
+            data.files.forEach(f => {
+                const li = document.createElement("li");
+                li.innerHTML = `<a href="${API_BASE}/uploads/${encodeURIComponent(f.filename)}" target="_blank">${f.filename}</a>`;
+                ul.appendChild(li);
+            });
+        } else {
+            ul.innerHTML = "<li>" + (data.error || "No files") + "</li>";
+        }
+    } catch (e) {
+        console.error("Load files error:", e);
     }
 }
 

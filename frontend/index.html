@@ -1,3 +1,4 @@
+<script src="config.js"></script>
 <!DOCTYPE html>
 <html>
 <head>
@@ -19,15 +20,13 @@
 <p id="msg"></p>
 
 <script>
-const API_BASE = "/api/auth";
-
 document.getElementById("loginForm").addEventListener("submit", async function(e) {
     e.preventDefault();
 
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    const res = await fetch(API_BASE + "/login.php", {
+    const res = await fetch(`${API_BASE}/api/auth/login.php`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ email, password })

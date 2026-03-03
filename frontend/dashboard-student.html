@@ -1,3 +1,4 @@
+<script src="config.js"></script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,7 +39,6 @@
 <h2>All Files</h2>
 <ul id="fileList"></ul>
 
-<!-- Logout button moved to bottom -->
 <hr>
 <button onclick="logout()">Logout</button>
 
@@ -52,6 +52,9 @@ function logout() {
     window.location.href = "index.html";
 }
 
+// Use API_BASE from config.js
+const API = API_BASE;
+
 async function upload() {
     const token = localStorage.getItem("token");
     const fileInput = document.getElementById("file");
@@ -61,7 +64,7 @@ async function upload() {
     form.append("file", fileInput.files[0]);
 
     try {
-        const res = await fetch("/api/upload/upload.php", {
+        const res = await fetch(`${API}/api/upload/upload.php`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token },
             body: form
@@ -81,7 +84,7 @@ async function upload() {
 async function loadFiles() {
     const token = localStorage.getItem("token");
     try {
-        const res = await fetch("/api/files/list.php", {
+        const res = await fetch(`${API}/api/files/list.php`, {
             headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
@@ -91,7 +94,7 @@ async function loadFiles() {
             data.files.forEach(f => {
                 const li = document.createElement("li");
                 const a = document.createElement("a");
-                a.href = "/uploads/" + encodeURIComponent(f.filename);
+                a.href = `${API}/uploads/${encodeURIComponent(f.filename)}`;
                 a.download = f.filename;
                 a.innerText = f.filename;
                 li.appendChild(a);

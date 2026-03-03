@@ -1,3 +1,4 @@
+<script src="config.js"></script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,26 +35,25 @@ if (!user || user.role !== "admin") {
 
 document.getElementById("userName").innerText = user.name || "Admin";
 
-const API = "/api";
+// Use API_BASE from config.js
+const API = API_BASE;
 
 async function loadFiles() {
     try {
-        const res = await fetch(API + "/files/list.php", {
+        const res = await fetch(API + "/api/files/list.php", {
             headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
         });
         const data = await res.json();
 
         const table = document.getElementById("filesTable");
-        // Reset keeping header row
         table.innerHTML = `<tr><th>ID</th><th>File</th><th>Uploader</th><th>Date</th><th>Action</th></tr>`;
 
         if (data.status === "success") {
-            // Fixed: was data.forEach but API returns data.files
             data.files.forEach(f => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${f.id}</td>
-                    <td><a href="/uploads/${encodeURIComponent(f.filename)}" target="_blank">${f.filename}</a></td>
+                    <td><a href="${API}/uploads/${encodeURIComponent(f.filename)}" target="_blank">${f.filename}</a></td>
                     <td>${f.name}</td>
                     <td>${f.uploaded_at || ""}</td>
                     <td><button onclick="deleteFile(${f.id})">❌ Delete</button></td>
@@ -72,8 +72,8 @@ async function deleteFile(id) {
     if (!confirm("Delete this file?")) return;
 
     try {
-        const res = await fetch(API + "/files/delete.php?id=" + id, {
-            method: "GET", // PHP reads $_GET['id'], GET is correct
+        const res = await fetch(API + "/api/files/delete.php?id=" + id, {
+            method: "GET",
             headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
         });
         const data = await res.json();
